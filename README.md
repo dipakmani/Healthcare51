@@ -8,144 +8,109 @@ fake = Faker()
 # -----------------------------
 # Configuration
 # -----------------------------
-num_records_fact = 500_000   # Fact table records
-num_records_dim = 500        # Dimension table records
+num_records = 500_000  # Total records for fact table
+num_dim_records = 500  # Dimension table size
 
 # -----------------------------
 # Generate Dimension Tables (6 columns each)
 # -----------------------------
+def generate_dim_patient(n):
+    return pd.DataFrame({
+        'PatientID': range(1, n+1),
+        'PatientName': [fake.name() for _ in range(n)],
+        'Gender': [random.choice(['Male','Female']) for _ in range(n)],
+        'DOB': [fake.date_of_birth(minimum_age=0, maximum_age=90) for _ in range(n)],
+        'City': [fake.city() for _ in range(n)],
+        'State': [fake.state() for _ in range(n)]
+    })
 
-# 1. Dim_Patient
-Dim_Patient = pd.DataFrame({
-    'PatientID': range(1, num_records_dim+1),
-    'PatientName': [fake.name() for _ in range(num_records_dim)],
-    'Gender': [random.choice(['Male','Female']) for _ in range(num_records_dim)],
-    'DOB': [fake.date_of_birth(minimum_age=0, maximum_age=90) for _ in range(num_records_dim)],
-    'City': [fake.city() for _ in range(num_records_dim)],
-    'State': [fake.state() for _ in range(num_records_dim)]
-})
+def generate_dim_doctor(n):
+    return pd.DataFrame({
+        'DoctorID': range(1, n+1),
+        'DoctorName': [fake.name() for _ in range(n)],
+        'Specialty': [random.choice(['Cardiology','Orthopedics','Neurology','General']) for _ in range(n)],
+        'ExperienceYears': [random.randint(1,40) for _ in range(n)],
+        'Department': [random.choice(['Surgery','Cardiology','Neurology','Orthopedics']) for _ in range(n)],
+        'ContactNumber': [fake.phone_number() for _ in range(n)]
+    })
 
-# 2. Dim_Doctor
-Dim_Doctor = pd.DataFrame({
-    'DoctorID': range(1, num_records_dim+1),
-    'DoctorName': [fake.name() for _ in range(num_records_dim)],
-    'Specialty': [random.choice(['Cardiology','Orthopedics','Neurology','General']) for _ in range(num_records_dim)],
-    'ExperienceYears': [random.randint(1,40) for _ in range(num_records_dim)],
-    'Department': [random.choice(['Surgery','Cardiology','Neurology','Orthopedics']) for _ in range(num_records_dim)],
-    'ContactNumber': [fake.phone_number() for _ in range(num_records_dim)]
-})
+def generate_dim_hospital(n):
+    return pd.DataFrame({
+        'HospitalID': range(1, n+1),
+        'HospitalName': [fake.company() for _ in range(n)],
+        'City': [fake.city() for _ in range(n)],
+        'State': [fake.state() for _ in range(n)],
+        'Capacity': [random.randint(50,500) for _ in range(n)],
+        'AccreditationLevel': [random.choice(['A','B','C']) for _ in range(n)]
+    })
 
-# 3. Dim_Hospital
-Dim_Hospital = pd.DataFrame({
-    'HospitalID': range(1, num_records_dim+1),
-    'HospitalName': [fake.company() for _ in range(num_records_dim)],
-    'City': [fake.city() for _ in range(num_records_dim)],
-    'State': [fake.state() for _ in range(num_records_dim)],
-    'Capacity': [random.randint(50,500) for _ in range(num_records_dim)],
-    'AccreditationLevel': [random.choice(['A','B','C']) for _ in range(num_records_dim)]
-})
+def generate_dim_department(n):
+    return pd.DataFrame({
+        'DepartmentID': range(1, n+1),
+        'DepartmentName': [random.choice(['Surgery','Cardiology','Neurology','Orthopedics']) for _ in range(n)],
+        'Floor': [random.randint(1,10) for _ in range(n)],
+        'HeadDoctorID': [random.randint(1,n) for _ in range(n)],
+        'RoomCount': [random.randint(5,50) for _ in range(n)],
+        'Budget': [random.randint(10000,500000) for _ in range(n)]
+    })
 
-# 4. Dim_Department
-Dim_Department = pd.DataFrame({
-    'DepartmentID': range(1, num_records_dim+1),
-    'DepartmentName': [random.choice(['Surgery','Cardiology','Neurology','Orthopedics']) for _ in range(num_records_dim)],
-    'Floor': [random.randint(1,10) for _ in range(num_records_dim)],
-    'HeadDoctorID': [random.randint(1,num_records_dim) for _ in range(num_records_dim)],
-    'RoomCount': [random.randint(5,50) for _ in range(num_records_dim)],
-    'Budget': [random.randint(10000,500000) for _ in range(num_records_dim)]
-})
-
-# 5. Dim_Procedure
-Dim_Procedure = pd.DataFrame({
-    'ProcedureID': range(1, num_records_dim+1),
-    'ProcedureName': [fake.bs().title() for _ in range(num_records_dim)],
-    'Category': [random.choice(['Minor','Major','Elective','Emergency']) for _ in range(num_records_dim)],
-    'CPT_Code': [fake.bothify(text='???-###') for _ in range(num_records_dim)],
-    'EstimatedDuration': [random.randint(30,240) for _ in range(num_records_dim)],
-    'CostEstimate': [random.randint(5000,50000) for _ in range(num_records_dim)]
-})
-
-# 6. Dim_Date
-Dim_Date = pd.DataFrame({
-    'DateID': range(1, num_records_dim+1),
-    'FullDate': [fake.date_between(start_date='-5y', end_date='today') for _ in range(num_records_dim)],
-    'Day': [random.randint(1,31) for _ in range(num_records_dim)],
-    'Month': [random.randint(1,12) for _ in range(num_records_dim)],
-    'Year': [random.randint(2018,2025) for _ in range(num_records_dim)],
-    'Weekday': [random.choice(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']) for _ in range(num_records_dim)]
-})
-
-# 7. Dim_Anesthesia
-Dim_Anesthesia = pd.DataFrame({
-    'AnesthesiaID': range(1, num_records_dim+1),
-    'Type': [random.choice(['General','Local','Regional','Sedation']) for _ in range(num_records_dim)],
-    'RiskLevel': [random.choice(['Low','Medium','High']) for _ in range(num_records_dim)],
-    'Description': [fake.sentence() for _ in range(num_records_dim)],
-    'DurationEstimate': [random.randint(30,240) for _ in range(num_records_dim)],
-    'Cost': [random.randint(1000,10000) for _ in range(num_records_dim)]
-})
-
-# 8. Dim_Equipment
-Dim_Equipment = pd.DataFrame({
-    'EquipmentID': range(1, num_records_dim+1),
-    'EquipmentName': [fake.word().title() for _ in range(num_records_dim)],
-    'Category': [random.choice(['Surgical','Monitoring','Imaging','Support']) for _ in range(num_records_dim)],
-    'PurchaseDate': [fake.date_between(start_date='-10y', end_date='today') for _ in range(num_records_dim)],
-    'Cost': [random.randint(1000,50000) for _ in range(num_records_dim)],
-    'MaintenanceSchedule': [random.choice(['Monthly','Quarterly','Yearly']) for _ in range(num_records_dim)]
-})
-
-# 9. Dim_Nurse
-Dim_Nurse = pd.DataFrame({
-    'NurseID': range(1, num_records_dim+1),
-    'NurseName': [fake.name() for _ in range(num_records_dim)],
-    'ExperienceYears': [random.randint(1,30) for _ in range(num_records_dim)],
-    'Shift': [random.choice(['Morning','Evening','Night']) for _ in range(num_records_dim)],
-    'Certification': [random.choice(['Basic','Advanced','Critical Care']) for _ in range(num_records_dim)],
-    'DepartmentID': [random.randint(1,num_records_dim) for _ in range(num_records_dim)]
-})
-
-# 10. Dim_Room
-Dim_Room = pd.DataFrame({
-    'RoomID': range(1, num_records_dim+1),
-    'RoomNumber': [random.randint(100,500) for _ in range(num_records_dim)],
-    'RoomType': [random.choice(['ICU','General','Private']) for _ in range(num_records_dim)],
-    'Floor': [random.randint(1,10) for _ in range(num_records_dim)],
-    'Capacity': [random.randint(1,5) for _ in range(num_records_dim)],
-    'AvailabilityStatus': [random.choice(['Available','Occupied','Maintenance']) for _ in range(num_records_dim)]
-})
+def generate_dim_procedure(n):
+    return pd.DataFrame({
+        'ProcedureID': range(1, n+1),
+        'ProcedureName': [fake.bs().title() for _ in range(n)],
+        'Category': [random.choice(['Minor','Major','Elective','Emergency']) for _ in range(n)],
+        'CPT_Code': [fake.bothify(text='???-###') for _ in range(n)],
+        'EstimatedDuration': [random.randint(30,240) for _ in range(n)],
+        'CostEstimate': [random.randint(5000,50000) for _ in range(n)]
+    })
 
 # -----------------------------
-# Generate Fact Table
+# Generate Fact Table with Dimension Columns
 # -----------------------------
-Fact_Operations = pd.DataFrame({
-    'OperationID': range(1, num_records_fact+1),
-    'PatientID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'DoctorID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'HospitalID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'DepartmentID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'ProcedureID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'DateID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'AnesthesiaID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'EquipmentID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'NurseID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'RoomID': np.random.randint(1, num_records_dim+1, num_records_fact),
-    'DurationMinutes': np.random.randint(30, 480, num_records_fact),
-    'OperationCost': np.random.randint(5000,100000, num_records_fact)
-})
+def generate_fact_operations(fact_records, dim_records):
+    # Create dimension tables
+    Dim_Patient = generate_dim_patient(dim_records)
+    Dim_Doctor = generate_dim_doctor(dim_records)
+    Dim_Hospital = generate_dim_hospital(dim_records)
+    Dim_Department = generate_dim_department(dim_records)
+    Dim_Procedure = generate_dim_procedure(dim_records)
+
+    # Generate random foreign keys
+    patient_ids = np.random.randint(1, dim_records+1, fact_records)
+    doctor_ids = np.random.randint(1, dim_records+1, fact_records)
+    hospital_ids = np.random.randint(1, dim_records+1, fact_records)
+    department_ids = np.random.randint(1, dim_records+1, fact_records)
+    procedure_ids = np.random.randint(1, dim_records+1, fact_records)
+
+    # Map dimension columns to fact table
+    fact = pd.DataFrame({
+        'OperationID': range(1, fact_records+1),
+        'PatientID': patient_ids,
+        'DoctorID': doctor_ids,
+        'HospitalID': hospital_ids,
+        'DepartmentID': department_ids,
+        'ProcedureID': procedure_ids,
+        'DurationMinutes': np.random.randint(30,480,fact_records),
+        'OperationCost': np.random.randint(5000,100000,fact_records)
+    })
+
+    # Merge dimension attributes
+    fact = fact.merge(Dim_Patient, on='PatientID', how='left', suffixes=('','_Patient'))
+    fact = fact.merge(Dim_Doctor, on='DoctorID', how='left', suffixes=('','_Doctor'))
+    fact = fact.merge(Dim_Hospital, on='HospitalID', how='left', suffixes=('','_Hospital'))
+    fact = fact.merge(Dim_Department, on='DepartmentID', how='left', suffixes=('','_Department'))
+    fact = fact.merge(Dim_Procedure, on='ProcedureID', how='left', suffixes=('','_Procedure'))
+
+    return fact
 
 # -----------------------------
-# Save as CSV
+# Generate data
 # -----------------------------
-dimension_tables = [Dim_Patient, Dim_Doctor, Dim_Hospital, Dim_Department, Dim_Procedure,
-                    Dim_Date, Dim_Anesthesia, Dim_Equipment, Dim_Nurse, Dim_Room]
+Fact_Operations = generate_fact_operations(num_records, num_dim_records)
 
-dimension_names = ['Dim_Patient','Dim_Doctor','Dim_Hospital','Dim_Department','Dim_Procedure',
-                   'Dim_Date','Dim_Anesthesia','Dim_Equipment','Dim_Nurse','Dim_Room']
+# -----------------------------
+# Save as single CSV
+# -----------------------------
+Fact_Operations.to_csv('Fact_Operations_Denormalized.csv', index=False)
 
-for name, df in zip(dimension_names, dimension_tables):
-    df.to_csv(f'{name}.csv', index=False)
-
-Fact_Operations.to_csv('Fact_Operations.csv', index=False)
-
-print("Fact_Operations and 10 dimension tables generated successfully with 500,000 records!")
+print("Single denormalized Fact_Operations CSV generated with 500,000 records!")

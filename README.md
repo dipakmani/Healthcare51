@@ -105,10 +105,10 @@ def generate_dim_payment_method(n):
     })
 
 # -----------------------------
-# Generate Fact_Medication Table
+# Generate Denormalized Fact_Medication
 # -----------------------------
 def generate_fact_medication(fact_records, dim_records):
-    # Create dimension tables
+    # Create dimensions
     Dim_Patient = generate_dim_patient(dim_records)
     Dim_Doctor = generate_dim_doctor(dim_records)
     Dim_Hospital = generate_dim_hospital(dim_records)
@@ -119,7 +119,7 @@ def generate_fact_medication(fact_records, dim_records):
     Dim_Insurance = generate_dim_insurance(dim_records)
     Dim_PaymentMethod = generate_dim_payment_method(dim_records)
 
-    # Generate random foreign keys
+    # Random foreign keys
     patient_ids = np.random.randint(1, dim_records+1, fact_records)
     doctor_ids = np.random.randint(1, dim_records+1, fact_records)
     hospital_ids = np.random.randint(1, dim_records+1, fact_records)
@@ -132,7 +132,7 @@ def generate_fact_medication(fact_records, dim_records):
 
     # Base fact table
     fact = pd.DataFrame({
-        'MedicationID_Fact': range(1, fact_records+1),
+        'FactMedicationID': range(1, fact_records+1),
         'PatientID': patient_ids,
         'DoctorID': doctor_ids,
         'HospitalID': hospital_ids,
@@ -146,7 +146,7 @@ def generate_fact_medication(fact_records, dim_records):
         'TotalCost': np.random.randint(50,5000,fact_records)
     })
 
-    # Merge dimension attributes
+    # Merge dimension attributes beside each ID
     fact = fact.merge(Dim_Patient, on='PatientID', how='left', suffixes=('','_Patient'))
     fact = fact.merge(Dim_Doctor, on='DoctorID', how='left', suffixes=('','_Doctor'))
     fact = fact.merge(Dim_Hospital, on='HospitalID', how='left', suffixes=('','_Hospital'))
@@ -165,4 +165,4 @@ def generate_fact_medication(fact_records, dim_records):
 Fact_Medication = generate_fact_medication(num_records, num_dim_records)
 Fact_Medication.to_csv('Fact_Medication_Denormalized.csv', index=False)
 
-print("Single denormalized Fact_Medication CSV generated with 500,000 records and 8+ dimensions!")
+print("Denormalized Fact_Medication CSV generated with 500,000 records and all related dimension columns!")

@@ -8,11 +8,11 @@ fake = Faker()
 # -----------------------------
 # Configuration
 # -----------------------------
-num_records = 500_000  # Total records for fact table
+num_records = 500_000  # Fact table records
 num_dim_records = 500  # Dimension table size
 
 # -----------------------------
-# Generate Dimension Tables (6 columns each)
+# Generate Dimension Tables (6 attributes each)
 # -----------------------------
 def generate_dim_patient(n):
     return pd.DataFrame({
@@ -54,44 +54,83 @@ def generate_dim_department(n):
         'Budget': [random.randint(10000,500000) for _ in range(n)]
     })
 
-def generate_dim_procedure(n):
+def generate_dim_visit_type(n):
     return pd.DataFrame({
-        'ProcedureID': range(1, n+1),
-        'ProcedureName': [fake.bs().title() for _ in range(n)],
-        'Category': [random.choice(['Minor','Major','Elective','Emergency']) for _ in range(n)],
-        'CPT_Code': [fake.bothify(text='???-###') for _ in range(n)],
-        'EstimatedDuration': [random.randint(30,240) for _ in range(n)],
-        'CostEstimate': [random.randint(5000,50000) for _ in range(n)]
+        'VisitTypeID': range(1, n+1),
+        'VisitType': [random.choice(['Emergency','Routine','Follow-up','Check-up']) for _ in range(n)],
+        'AvgWaitTime': [random.randint(5,180) for _ in range(n)],
+        'Notes': [fake.sentence() for _ in range(n)],
+        'TypicalDuration': [random.randint(15,120) for _ in range(n)],
+        'CostEstimate': [random.randint(500,5000) for _ in range(n)]
+    })
+
+def generate_dim_date(n):
+    return pd.DataFrame({
+        'DateID': range(1, n+1),
+        'FullDate': [fake.date_between(start_date='-5y', end_date='today') for _ in range(n)],
+        'Day': [random.randint(1,31) for _ in range(n)],
+        'Month': [random.randint(1,12) for _ in range(n)],
+        'Year': [random.randint(2018,2025) for _ in range(n)],
+        'Weekday': [random.choice(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']) for _ in range(n)]
+    })
+
+def generate_dim_insurance(n):
+    return pd.DataFrame({
+        'InsuranceID': range(1, n+1),
+        'ProviderName': [fake.company() for _ in range(n)],
+        'PolicyType': [random.choice(['Basic','Premium','Gold','Silver']) for _ in range(n)],
+        'CoveragePercent': [random.randint(50,100) for _ in range(n)],
+        'ContactNumber': [fake.phone_number() for _ in range(n)],
+        'Notes': [fake.sentence() for _ in range(n)]
+    })
+
+def generate_dim_payment_method(n):
+    return pd.DataFrame({
+        'PaymentMethodID': range(1, n+1),
+        'Method': [random.choice(['Cash','Credit Card','Insurance','UPI']) for _ in range(n)],
+        'Bank': [fake.company() for _ in range(n)],
+        'AccountNumber': [fake.bothify(text='##########') for _ in range(n)],
+        'Notes': [fake.sentence() for _ in range(n)],
+        'TransactionFee': [random.randint(0,100) for _ in range(n)]
     })
 
 # -----------------------------
-# Generate Fact Table with Dimension Columns
+# Generate Fact_Visits Table
 # -----------------------------
-def generate_fact_operations(fact_records, dim_records):
-    # Create dimension tables
+def generate_fact_visits(fact_records, dim_records):
+    # Create dimensions
     Dim_Patient = generate_dim_patient(dim_records)
     Dim_Doctor = generate_dim_doctor(dim_records)
     Dim_Hospital = generate_dim_hospital(dim_records)
     Dim_Department = generate_dim_department(dim_records)
-    Dim_Procedure = generate_dim_procedure(dim_records)
+    Dim_VisitType = generate_dim_visit_type(dim_records)
+    Dim_Date = generate_dim_date(dim_records)
+    Dim_Insurance = generate_dim_insurance(dim_records)
+    Dim_PaymentMethod = generate_dim_payment_method(dim_records)
 
     # Generate random foreign keys
     patient_ids = np.random.randint(1, dim_records+1, fact_records)
     doctor_ids = np.random.randint(1, dim_records+1, fact_records)
     hospital_ids = np.random.randint(1, dim_records+1, fact_records)
     department_ids = np.random.randint(1, dim_records+1, fact_records)
-    procedure_ids = np.random.randint(1, dim_records+1, fact_records)
+    visittype_ids = np.random.randint(1, dim_records+1, fact_records)
+    date_ids = np.random.randint(1, dim_records+1, fact_records)
+    insurance_ids = np.random.randint(1, dim_records+1, fact_records)
+    paymentmethod_ids = np.random.randint(1, dim_records+1, fact_records)
 
-    # Map dimension columns to fact table
+    # Create base fact table
     fact = pd.DataFrame({
-        'OperationID': range(1, fact_records+1),
+        'VisitID': range(1, fact_records+1),
         'PatientID': patient_ids,
         'DoctorID': doctor_ids,
         'HospitalID': hospital_ids,
         'DepartmentID': department_ids,
-        'ProcedureID': procedure_ids,
-        'DurationMinutes': np.random.randint(30,480,fact_records),
-        'OperationCost': np.random.randint(5000,100000,fact_records)
+        'VisitTypeID': visittype_ids,
+        'DateID': date_ids,
+        'InsuranceID': insurance_ids,
+        'PaymentMethodID': paymentmethod_ids,
+        'VisitDurationMinutes': np.random.randint(10,480,fact_records),
+        'VisitCost': np.random.randint(500,50000,fact_records)
     })
 
     # Merge dimension attributes
@@ -99,18 +138,17 @@ def generate_fact_operations(fact_records, dim_records):
     fact = fact.merge(Dim_Doctor, on='DoctorID', how='left', suffixes=('','_Doctor'))
     fact = fact.merge(Dim_Hospital, on='HospitalID', how='left', suffixes=('','_Hospital'))
     fact = fact.merge(Dim_Department, on='DepartmentID', how='left', suffixes=('','_Department'))
-    fact = fact.merge(Dim_Procedure, on='ProcedureID', how='left', suffixes=('','_Procedure'))
+    fact = fact.merge(Dim_VisitType, on='VisitTypeID', how='left', suffixes=('','_VisitType'))
+    fact = fact.merge(Dim_Date, on='DateID', how='left', suffixes=('','_Date'))
+    fact = fact.merge(Dim_Insurance, on='InsuranceID', how='left', suffixes=('','_Insurance'))
+    fact = fact.merge(Dim_PaymentMethod, on='PaymentMethodID', how='left', suffixes=('','_PaymentMethod'))
 
     return fact
 
 # -----------------------------
-# Generate data
+# Generate data and save
 # -----------------------------
-Fact_Operations = generate_fact_operations(num_records, num_dim_records)
+Fact_Visits = generate_fact_visits(num_records, num_dim_records)
+Fact_Visits.to_csv('Fact_Visits_Denormalized.csv', index=False)
 
-# -----------------------------
-# Save as single CSV
-# -----------------------------
-Fact_Operations.to_csv('Fact_Operations_Denormalized.csv', index=False)
-
-print("Single denormalized Fact_Operations CSV generated with 500,000 records!")
+print("Single denormalized Fact_Visits CSV generated with 500,000 records and 8 dimensions!")
